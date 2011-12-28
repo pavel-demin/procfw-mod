@@ -1,0 +1,386 @@
+diff -r c2f2580404a4 FastRecovery/Makefile
+--- a/FastRecovery/Makefile	Sat Oct 29 21:39:54 2011 +0800
++++ b/FastRecovery/Makefile	Tue Dec 27 21:40:48 2011 +0400
+@@ -1,6 +1,7 @@
+ TARGET = fast_recovery
+ OBJS = main.o imports.o syscall.o ../PXE/Launcher/launcher_patch_offset.o ../Common/utils.o
+-LIBS =
++LIBS = ../libs/libpspsystemctrl_user.a
++# ^[vshcntrl]
+ CFLAGS = -Os -G0 -Wall -I ../Common -I ../include
+ CXXFLAGS = $(CFLAGS)
+ ASFLAGS = $(CFLAGS)
+diff -r c2f2580404a4 FastRecovery/main.c
+--- a/FastRecovery/main.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/FastRecovery/main.c	Tue Dec 27 21:40:48 2011 +0400
+@@ -27,6 +27,7 @@
+ #include <pspsysmem.h>
+ #include <psppower.h>
+ #include <string.h>
++#include <systemctrl_se.h> // <[vshcntrl]
+ #include "utils.h"
+ #include "printk.h"
+ #include "rebootex_conf.h"
+@@ -85,6 +86,7 @@
+ u32 psp_fw_version = 0;
+ 
+ int dump_kmem = 0;
++int enable_disable_vsh = 0; // <[vshcntrl]
+ 
+ //load reboot function
+ int (* LoadReboot)(void * arg1, unsigned int arg2, void * arg3, unsigned int arg4) = NULL;
+@@ -362,6 +364,17 @@
+ 	}
+ }
+ 
++void input_changevsh(void)
++{
++	SceCtrlData ctl;
++	sceCtrlReadBufferPositive(&ctl, 1);
++
++	if (ctl.Buttons & PSP_CTRL_RTRIGGER) {
++		enable_disable_vsh = 1;
++		pspDebugScreenPrintf("VSH menu will be enabled or disabled...\r\n");
++	}
++} // <[vshcntrl]
++
+ #if defined(CONFIG_620) || defined(CONFIG_635)
+ //safe syscall wrapper for kernel_permission_call - this lets us return safely!
+ int kernelSyscall(void);
+@@ -532,6 +545,7 @@
+ 	pspDebugScreenInit();
+ 
+ 	input_dump_kmem();
++	input_changevsh(); // <[vshcntrl]
+ 
+ #ifdef CONFIG_639
+ 	if(psp_fw_version == FW_639) {
+@@ -569,6 +583,13 @@
+ 		}
+ 	}
+ 
++	if (enable_disable_vsh) {
++		SEConfig config;
++		sctrlSEGetConfig(&config);
++		config.use_vsh_menu = !(config.use_vsh_menu);
++		sctrlSESetConfig(&config);
++	}
++
+ 	//trigger reboot
+ 	sceKernelExitGame();
+ 
+diff -r c2f2580404a4 Installer/main.c
+--- a/Installer/main.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/Installer/main.c	Tue Dec 27 21:40:48 2011 +0400
+@@ -194,7 +194,7 @@
+ 
+ void usage(void)
+ {
+-	printf(VERSION_STR " by Team PRO\n");
++	printf(VERSION_STR " by Team PRO & Yoti\n"); // <[yoti_mod]
+ }
+ 
+ struct InstallList {
+@@ -231,7 +231,7 @@
+ 	int ret, i;
+ 
+ 	if(disable_smart) {
+-		sceIoRemove("flash1:/config.se");
++		sceIoRemove("flash1:/config.xx"); // <[yoti_mod]
+ 	}
+ 
+ 	for(i=0; i<NELEMS(g_old_cfw_files); ++i) {
+@@ -482,7 +482,7 @@
+ {
+ 	int ret;
+ 
+-	sceIoRemove("flash1:/config.se");
++	sceIoRemove("flash1:/config.xx"); // <[yoti_mod]
+ 
+ 	int i; for(i=0; i<NELEMS(g_file_lists); ++i) {
+ 		printf("Removing %s...", g_file_lists[i].dst);
+diff -r c2f2580404a4 Recovery/main.h
+--- a/Recovery/main.h	Sat Oct 29 21:39:54 2011 +0800
++++ b/Recovery/main.h	Tue Dec 27 21:40:48 2011 +0400
+@@ -120,6 +120,8 @@
+ 	CHINA,
+ 	DEBUG_TYPE_I,
+ 	DEBUG_TYPE_II,
++	PARENTAL_MODE, // <[parental]
++	USE_VSH_MENU, // <[vshcntrl]
+ 	MSG_END,
+ };
+ 
+diff -r c2f2580404a4 Recovery/menu.c
+--- a/Recovery/menu.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/Recovery/menu.c	Tue Dec 27 21:40:48 2011 +0400
+@@ -62,6 +62,11 @@
+ 	1, MODE_INFERNO+1,
+ };
+ 
++static struct ValueOption g_use_vsh_menu = {
++	&g_config.use_vsh_menu,
++	0, 2,
++}; // <[vshcntrl]
++
+ static struct ValueOption g_xmb_usbdevice_option = {
+ 	&g_config.usbdevice,
+ 	0, PSP_USBDEVICE_UMD9660+1+1, /* plus 1 for no usbdevice */
+@@ -224,6 +229,13 @@
+ 	return 0;
+ }
+ 
++static int display_use_vsh_menu(struct MenuEntry* entry, char *buf, int size)
++{
++	sprintf(buf, "%-48s %-11s", g_messages[USE_VSH_MENU], get_bool_name(g_config.use_vsh_menu));
++
++	return 0;
++} // <[vshcntrl]
++
+ static int display_xmb_usbdevice(struct MenuEntry* entry, char *buf, int size)
+ {
+ 	sprintf(buf, "%-48s %-11s", g_messages[XMB_USBDEVICE], get_usbdevice_name(g_config.usbdevice));
+@@ -407,6 +419,7 @@
+ static struct MenuEntry g_configuration_menu_entries[] = {
+ 	{ -1, 0, 0, &display_iso_mode, &change_option, &change_option_by_enter, &g_iso_mode_option },
+ 	{ -1, 0, 0, &display_language, &change_option, &change_option_by_enter, &g_language_charge_option },
++	{ -1, 0, 0, &display_use_vsh_menu, &change_option, &change_option_by_enter, &g_use_vsh_menu }, // <[vshcntrl]
+ 	{ -1, 0, 0, &display_fake_region, &change_option, &change_option_by_enter, &g_fake_region_option },
+ 	{ -1, 0, 0, &display_recovery_font, &change_font_select_option, &change_font_select_option_by_enter, &g_recovery_font_option },
+ 	{ -1, 0, 0, &display_xmb_usbdevice, &change_option, &change_option_by_enter, &g_xmb_usbdevice_option },
+@@ -474,6 +487,13 @@
+ 	return 0;
+ }
+ 
++static int display_parental_mode(struct MenuEntry* entry, char *buf, int size)
++{
++	sprintf(buf, "%-48s %-11s", g_messages[PARENTAL_MODE], get_bool_name(g_config.parental_mode));
++
++	return 0;
++} // <[parental]
++
+ static int display_iso_cache(struct MenuEntry* entry, char *buf, int size)
+ {
+ 	sprintf(buf, "%-48s %-11s", g_messages[ISO_CACHE], get_bool_name(g_config.iso_cache));
+@@ -573,6 +593,11 @@
+ 	0, 2,
+ };
+ 
++static struct ValueOption g_parental_mode = {
++	&g_config.parental_mode,
++	0, 2,
++};
++
+ static struct ValueOption g_iso_cache = {
+ 	&g_config.iso_cache,
+ 	0, 2,
+@@ -618,6 +643,7 @@
+ 	{ -1, 0, 0, &display_use_noanalog, &change_option, &change_option_by_enter, &g_use_noanalog_option},
+ 	{ -1, 0, 0, &display_chn_iso, &change_option, &change_option_by_enter, &g_chn_iso},
+ 	{ -1, 0, 0, &display_use_oldplugin, &change_option, &change_option_by_enter, &g_use_oldplugin},
++	{ -1, 0, 0, &display_parental_mode, &change_option, &change_option_by_enter, &g_parental_mode }, // <[parental]
+ 	{ -1, 0, 0, &display_iso_cache, &change_option, &change_option_by_enter, &g_iso_cache},
+ 	{ -1, 0, 0, &display_iso_cache_total_size, &change_option, &change_option_by_enter, &g_iso_cache_total_size},
+ 	{ -1, 0, 0, &display_iso_cache_number, &change_iso_cache_number_option, &change_iso_cache_number_option_by_enter, &g_iso_cache_number},
+diff -r c2f2580404a4 Recovery/trans_en.c
+--- a/Recovery/trans_en.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/Recovery/trans_en.c	Tue Dec 27 21:40:48 2011 +0400
+@@ -21,7 +21,7 @@
+ #include "main.h"
+ 
+ const char * g_messages_en[] = {
+-	"PRO Recovery Menu",
++	"PRO/Yoti Recovery Menu", // <[yoti_mod]
+ 	"Main Menu",
+ 	"Entering",
+ 	"Exiting",
+@@ -119,6 +119,8 @@
+ 	"China",
+ 	"Debug Type I",
+ 	"Debug Type II",
++	"Disable parental control for ISO", // <[parental]
++	"Use VSH menu", // <[vshcntrl]
+ };
+ 
+ u8 message_test_en[NELEMS(g_messages_en) == MSG_END ? 0 : -1];
+diff -r c2f2580404a4 SystemControl/conf.c
+--- a/SystemControl/conf.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/SystemControl/conf.c	Tue Dec 27 21:40:48 2011 +0400
+@@ -47,7 +47,7 @@
+    
+ 	k1 = pspSdkSetK1(0);
+ 	memset(config, 0, sizeof(*config));
+-	fd = sceIoOpen("flash1:/config.se", PSP_O_RDONLY, 0644);
++	fd = sceIoOpen("flash1:/config.xx", PSP_O_RDONLY, 0644); // <[yoti_mod]
+ 
+ 	if (fd < 0) {
+ 		pspSdkSetK1(k1);
+@@ -81,8 +81,8 @@
+ 	SceUID fd;
+ 
+ 	k1 = pspSdkSetK1(0);
+-	sceIoRemove("flash1:/config.se");
+-	fd = sceIoOpen("flash1:/config.se", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
++	sceIoRemove("flash1:/config.xx"); // <[yoti_mod]
++	fd = sceIoOpen("flash1:/config.xx", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777); // <[yoti_mod]
+ 
+ 	if (fd < 0) {
+ 		pspSdkSetK1(k1);
+@@ -112,7 +112,7 @@
+ 	int written;
+    
+ 	k1 = pspSdkSetK1(0);
+-	fd = sceIoOpen("flash1:/config.se", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
++	fd = sceIoOpen("flash1:/config.xx", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777); // <[yoti_mod]
+ 
+ 	if (fd < 0) {
+ 		pspSdkSetK1(k1);
+@@ -146,7 +146,7 @@
+ 	read = -1;
+ 	k1 = pspSdkSetK1(0);
+ 	memset(config, 0, size);
+-	fd = sceIoOpen("flash1:/config.se", PSP_O_RDONLY, 0666);
++	fd = sceIoOpen("flash1:/config.xx", PSP_O_RDONLY, 0666); // <[yoti_mod]
+ 
+ 	if (fd > 0) {
+ 		read = sceIoRead(fd, config, size);
+@@ -192,23 +192,25 @@
+ 	config->usbdevice = 0;
+ 	config->flashprot = 1;
+ 	config->fakeregion = FAKE_REGION_DISABLED;
+-	config->skiplogo = 0;
++	config->skiplogo = 1; // <[settings]
+ 	config->useversion = 0;
+ 	config->useownupdate = 1;
+ 	config->usenodrm = 1;
+-	config->hibblock = 1;
++	config->hibblock = 0; // <[settings]
+ 	config->noanalog = 0;
+-	config->oldplugin = 1;
++	config->oldplugin = psp_model == PSP_GO ? 1 : 0; // <[settings]
+ 	config->htmlviewer_custom_save_location = 1;
+ 	config->hide_cfw_dirs = 1;
+-	config->chn_iso = 1;
++	config->chn_iso = 0; // <[settings]
+ 	config->msspeed = MSSPEED_NONE;
+-	config->slimcolor = 1;
++	config->slimcolor = psp_model == PSP_1000 ? 1 : 0; // <[settings]
+ 	config->iso_cache = psp_model == PSP_GO ? 0 : 1;
+ 	config->iso_cache_total_size = 20;
+ 	config->iso_cache_num = 256;
+ 	config->iso_cache_policy = CACHE_POLICY_LRU;
+ 	config->usbversion = 0;
++	config->parental_mode = 0; // <[parental]
++	config->use_vsh_menu = 1; // <[vshcntrl]
+ 	config->language = -1;
+ }
+ 
+diff -r c2f2580404a4 Vshctrl/virtual_pbp.c
+--- a/Vshctrl/virtual_pbp.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/Vshctrl/virtual_pbp.c	Tue Dec 27 21:40:48 2011 +0400
+@@ -531,6 +531,7 @@
+ 	char sfotitle[64];
+ 	char disc_id[12];
+ 	u32 parental_level = 1;
++	SEConfig config; // <[parental]
+ 
+ 	buf = oe_malloc(SECTOR_SIZE+64);
+ 
+@@ -566,7 +567,9 @@
+ 		return ret;
+ 	}
+ 
+-	get_sfo_u32(buf_64, "PARENTAL_LEVEL", &parental_level);
++	sctrlSEGetConfig(&config); // <[parental]
++	if (config.parental_mode == 0) // <[parental]
++		get_sfo_u32(buf_64, "PARENTAL_LEVEL", &parental_level); // <[parental]
+ 
+ 	oe_free(buf);
+ 	memcpy(virtualsfo+0x118, sfotitle, 64);
+diff -r c2f2580404a4 Vshctrl/vshctrl_patch_offset.c
+--- a/Vshctrl/vshctrl_patch_offset.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/Vshctrl/vshctrl_patch_offset.c	Tue Dec 27 21:40:48 2011 +0400
+@@ -33,7 +33,7 @@
+ 	},
+ 	.sysconf_plugin_patch = {
+ 		.SystemVersionStr = 0x0002A62C,
+-		.SystemVersionMessage = "6.60 PRO-%c",
++		.SystemVersionMessage = "6.60 PROMOD-%c", // <[yoti_mod]
+ 		.SystemVersion = 0x000192E0,
+ 		.MacAddressStr = 0x0002E9A0,
+ 		.SlimColor = 0x000076EC,
+@@ -116,7 +116,7 @@
+ 	},
+ 	.sysconf_plugin_patch = {
+ 		.SystemVersionStr = 0x0002A1FC,
+-		.SystemVersionMessage = "6.39 PRO-%c",
++		.SystemVersionMessage = "6.39 PROMOD-%c", // <[yoti_mod]
+ 		.SystemVersion = 0x00018F3C,
+ 		.MacAddressStr = 0x0002E4D8,
+ 		.SlimColor = 0x00007660,
+@@ -199,7 +199,7 @@
+ 	},
+ 	.sysconf_plugin_patch = {
+ 		.SystemVersionStr = 0x0002A1FC,
+-		.SystemVersionMessage = "6.35 PRO-%c",
++		.SystemVersionMessage = "6.35 PROMOD-%c", // <[yoti_mod]
+ 		.SystemVersion = 0x00018F3C,
+ 		.MacAddressStr = 0x0002E4D8,
+ 		.SlimColor = 0x00007660,
+@@ -282,7 +282,7 @@
+ 	},
+ 	.sysconf_plugin_patch = {
+ 		.SystemVersionStr = 0x000298AC,
+-		.SystemVersionMessage = "6.20 PRO-%c",
++		.SystemVersionMessage = "6.20 PROMOD-%c", // <[yoti_mod]
+ 		.SystemVersion = 0x00018920,
+ 		.MacAddressStr = 0x0002DB90,
+ 		.SlimColor = 0x00007494,
+diff -r c2f2580404a4 Vshctrl/vshmenu.c
+--- a/Vshctrl/vshmenu.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/Vshctrl/vshmenu.c	Tue Dec 27 21:40:48 2011 +0400
+@@ -172,6 +172,12 @@
+ 		if (sceKernelFindModuleByName("camera_plugin_module"))
+ 			goto exit;
+ 
++		// Block Satellite by config // <[vshcntrl]
++		SEConfig config; // <[vshcntrl]
++		sctrlSEGetConfig(&config); // <[vshcntrl]
++		if (config.use_vsh_menu == 0) // <[vshcntrl]
++			goto exit; // <[vshcntrl]
++
+ 		printk("%s: loading satelite\n", __func__);
+ 		modid = load_satelite();
+ 
+diff -r c2f2580404a4 Vshctrl/vshpatch.c
+--- a/Vshctrl/vshpatch.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/Vshctrl/vshpatch.c	Tue Dec 27 21:40:48 2011 +0400
+@@ -179,6 +179,7 @@
+ 	"/SEPLUGINS",
+ 	"/ISO",
+ 	"/ISO/VIDEO",
++	"/IRSHELL", // <[ir_shell]
+ };
+ 
+ int myIoMkdir(const char *dir, SceMode mode)
+@@ -285,7 +286,7 @@
+ 	}
+ 
+ #ifdef NIGHTLY
+-	strcpy(str, "PRO NIGHTLY");
++	strcpy(str, "PROMOD NIGHTLY"); // <[yoti_mod]
+ #endif
+ 	
+ 	p = (void*)(text_addr + g_offs->sysconf_plugin_patch.SystemVersionStr);
+diff -r c2f2580404a4 include/systemctrl_se.h
+--- a/include/systemctrl_se.h	Sat Oct 29 21:39:54 2011 +0800
++++ b/include/systemctrl_se.h	Tue Dec 27 21:40:48 2011 +0400
+@@ -88,6 +88,8 @@
+ 	s16 iso_cache_num;
+ 	s16 iso_cache_policy;
+ 	s16 usbversion;
++	s16 parental_mode; // <[parental]
++	s16 use_vsh_menu; // <[vshcntrl]
+ 	s16 language; /* -1 as autodetect */
+ } SEConfig;
+ 
