@@ -1,6 +1,6 @@
-diff -r c2f2580404a4 CIPL_installer/Makefile
---- a/CIPL_installer/Makefile	Sat Oct 29 21:39:54 2011 +0800
-+++ b/CIPL_installer/Makefile	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 CIPL_installer/Makefile
+--- a/CIPL_installer/Makefile	Mon Feb 13 00:44:26 2012 +0100
++++ b/CIPL_installer/Makefile	Wed Feb 22 00:43:55 2012 +0400
 @@ -26,7 +26,7 @@
  ASFLAGS = $(CFLAGS)
  
@@ -10,9 +10,9 @@ diff -r c2f2580404a4 CIPL_installer/Makefile
  PSP_EBOOT_ICON = ICON0.PNG
  
  PSPSDK=$(shell psp-config --pspsdk-path)
-diff -r c2f2580404a4 CIPL_installer/main.c
---- a/CIPL_installer/main.c	Sat Oct 29 21:39:54 2011 +0800
-+++ b/CIPL_installer/main.c	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 CIPL_installer/main.c
+--- a/CIPL_installer/main.c	Mon Feb 13 00:44:26 2012 +0100
++++ b/CIPL_installer/main.c	Wed Feb 22 00:43:55 2012 +0400
 @@ -154,7 +154,7 @@
  		ErrorExit(5000,"Failed to get ipl!\n");
  	}
@@ -22,9 +22,9 @@ diff -r c2f2580404a4 CIPL_installer/main.c
  
  	int ipl_type = 0;
  
-diff -r c2f2580404a4 FastRecovery/Makefile
---- a/FastRecovery/Makefile	Sat Oct 29 21:39:54 2011 +0800
-+++ b/FastRecovery/Makefile	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 FastRecovery/Makefile
+--- a/FastRecovery/Makefile	Mon Feb 13 00:44:26 2012 +0100
++++ b/FastRecovery/Makefile	Wed Feb 22 00:43:55 2012 +0400
 @@ -1,6 +1,7 @@
  TARGET = fast_recovery
  OBJS = main.o imports.o syscall.o ../PXE/Launcher/launcher_patch_offset.o ../Common/utils.o
@@ -43,9 +43,9 @@ diff -r c2f2580404a4 FastRecovery/Makefile
  
  EXTRA_TARGETS = EBOOT.PBP
  PSP_EBOOT_ICON = ICON0.PNG
-diff -r c2f2580404a4 FastRecovery/main.c
---- a/FastRecovery/main.c	Sat Oct 29 21:39:54 2011 +0800
-+++ b/FastRecovery/main.c	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 FastRecovery/main.c
+--- a/FastRecovery/main.c	Mon Feb 13 00:44:26 2012 +0100
++++ b/FastRecovery/main.c	Wed Feb 22 00:43:55 2012 +0400
 @@ -27,6 +27,7 @@
  #include <pspsysmem.h>
  #include <psppower.h>
@@ -156,9 +156,9 @@ diff -r c2f2580404a4 FastRecovery/main.c
  	}
  
  	//trigger reboot
-diff -r c2f2580404a4 Installer/main.c
---- a/Installer/main.c	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Installer/main.c	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 Installer/main.c
+--- a/Installer/main.c	Mon Feb 13 00:44:26 2012 +0100
++++ b/Installer/main.c	Wed Feb 22 00:43:55 2012 +0400
 @@ -194,7 +194,7 @@
  
  void usage(void)
@@ -186,9 +186,9 @@ diff -r c2f2580404a4 Installer/main.c
  
  	int i; for(i=0; i<NELEMS(g_file_lists); ++i) {
  		printf("Removing %s...", g_file_lists[i].dst);
-diff -r c2f2580404a4 Makefile
---- a/Makefile	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Makefile	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 Makefile
+--- a/Makefile	Mon Feb 13 00:44:26 2012 +0100
++++ b/Makefile	Wed Feb 22 00:43:55 2012 +0400
 @@ -55,7 +55,7 @@
  # Preparing Distribution Folders
  	@mkdir $(DISTRIBUTE) || true
@@ -198,9 +198,9 @@ diff -r c2f2580404a4 Makefile
  	@cp Translated/* $(DISTRIBUTE)/seplugins || true
  	@mkdir $(DISTRIBUTE)/PSP || true
  	@mkdir $(DISTRIBUTE)/PSP/GAME || true
-diff -r c2f2580404a4 PXE/Launcher/Makefile
---- a/PXE/Launcher/Makefile	Sat Oct 29 21:39:54 2011 +0800
-+++ b/PXE/Launcher/Makefile	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 PXE/Launcher/Makefile
+--- a/PXE/Launcher/Makefile	Mon Feb 13 00:44:26 2012 +0100
++++ b/PXE/Launcher/Makefile	Wed Feb 22 00:43:55 2012 +0400
 @@ -52,11 +52,11 @@
  endif
  
@@ -215,21 +215,23 @@ diff -r c2f2580404a4 PXE/Launcher/Makefile
  
  PSPSDK=$(shell psp-config --pspsdk-path)
  include $(PSPSDK)/lib/build.mak
-diff -r c2f2580404a4 Recovery/main.h
---- a/Recovery/main.h	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Recovery/main.h	Wed Feb 22 00:35:36 2012 +0400
-@@ -120,6 +120,8 @@
+diff -r 775b9c814ce8 Recovery/main.h
+--- a/Recovery/main.h	Mon Feb 13 00:44:26 2012 +0100
++++ b/Recovery/main.h	Wed Feb 22 00:43:55 2012 +0400
+@@ -119,7 +119,9 @@
+ 	RUSSIA,
  	CHINA,
  	DEBUG_TYPE_I,
- 	DEBUG_TYPE_II,
+-	DEBUG_TYPE_II,
++	DEBUG_TYPE_II,
 +	PARENTAL_MODE, // <[parental]
 +	USE_VSH_MENU, // <[vshcntrl]
+ 	RETAIL_HIGH_MEMORY,
  	MSG_END,
  };
- 
-diff -r c2f2580404a4 Recovery/menu.c
---- a/Recovery/menu.c	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Recovery/menu.c	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 Recovery/menu.c
+--- a/Recovery/menu.c	Mon Feb 13 00:44:26 2012 +0100
++++ b/Recovery/menu.c	Wed Feb 22 00:43:55 2012 +0400
 @@ -62,6 +62,11 @@
  	1, MODE_INFERNO+1,
  };
@@ -278,7 +280,7 @@ diff -r c2f2580404a4 Recovery/menu.c
  static int display_iso_cache(struct MenuEntry* entry, char *buf, int size)
  {
  	sprintf(buf, "%-48s %-11s", g_messages[ISO_CACHE], get_bool_name(g_config.iso_cache));
-@@ -573,6 +593,11 @@
+@@ -580,6 +600,11 @@
  	0, 2,
  };
  
@@ -290,7 +292,7 @@ diff -r c2f2580404a4 Recovery/menu.c
  static struct ValueOption g_iso_cache = {
  	&g_config.iso_cache,
  	0, 2,
-@@ -618,6 +643,7 @@
+@@ -630,6 +655,7 @@
  	{ -1, 0, 0, &display_use_noanalog, &change_option, &change_option_by_enter, &g_use_noanalog_option},
  	{ -1, 0, 0, &display_chn_iso, &change_option, &change_option_by_enter, &g_chn_iso},
  	{ -1, 0, 0, &display_use_oldplugin, &change_option, &change_option_by_enter, &g_use_oldplugin},
@@ -298,9 +300,9 @@ diff -r c2f2580404a4 Recovery/menu.c
  	{ -1, 0, 0, &display_iso_cache, &change_option, &change_option_by_enter, &g_iso_cache},
  	{ -1, 0, 0, &display_iso_cache_total_size, &change_option, &change_option_by_enter, &g_iso_cache_total_size},
  	{ -1, 0, 0, &display_iso_cache_number, &change_iso_cache_number_option, &change_iso_cache_number_option_by_enter, &g_iso_cache_number},
-diff -r c2f2580404a4 Recovery/trans_en.c
---- a/Recovery/trans_en.c	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Recovery/trans_en.c	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 Recovery/trans_en.c
+--- a/Recovery/trans_en.c	Mon Feb 13 00:44:26 2012 +0100
++++ b/Recovery/trans_en.c	Wed Feb 22 00:43:55 2012 +0400
 @@ -21,7 +21,7 @@
  #include "main.h"
  
@@ -316,12 +318,12 @@ diff -r c2f2580404a4 Recovery/trans_en.c
  	"Debug Type II",
 +	"Enable parental control for ISO", // <[parental]
 +	"Enable VSH menu in PSP menu", // <[vshcntrl]
+ 	"Unlock Memory in PSP Games (breaks Homescreen)",
  };
  
- u8 message_test_en[NELEMS(g_messages_en) == MSG_END ? 0 : -1];
-diff -r c2f2580404a4 Satelite/trans_en.c
---- a/Satelite/trans_en.c	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Satelite/trans_en.c	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 Satelite/trans_en.c
+--- a/Satelite/trans_en.c	Mon Feb 13 00:44:26 2012 +0100
++++ b/Satelite/trans_en.c	Wed Feb 22 00:43:55 2012 +0400
 @@ -36,7 +36,7 @@
  	"RESET DEVICE",
  	"RESET VSH",
@@ -331,9 +333,9 @@ diff -r c2f2580404a4 Satelite/trans_en.c
  	"Flash",
  	"UMD Disc",
  	"Memory Stick",
-diff -r c2f2580404a4 SystemControl/conf.c
---- a/SystemControl/conf.c	Sat Oct 29 21:39:54 2011 +0800
-+++ b/SystemControl/conf.c	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 SystemControl/conf.c
+--- a/SystemControl/conf.c	Mon Feb 13 00:44:26 2012 +0100
++++ b/SystemControl/conf.c	Wed Feb 22 00:43:55 2012 +0400
 @@ -47,7 +47,7 @@
     
  	k1 = pspSdkSetK1(0);
@@ -372,7 +374,7 @@ diff -r c2f2580404a4 SystemControl/conf.c
  
  	if (fd > 0) {
  		read = sceIoRead(fd, config, size);
-@@ -192,23 +192,25 @@
+@@ -192,24 +192,26 @@
  	config->usbdevice = 0;
  	config->flashprot = 1;
  	config->fakeregion = FAKE_REGION_DISABLED;
@@ -398,89 +400,100 @@ diff -r c2f2580404a4 SystemControl/conf.c
  	config->iso_cache_num = 256;
  	config->iso_cache_policy = CACHE_POLICY_LRU;
  	config->usbversion = 0;
-+	config->parental_mode = 0; // <[parental]
-+	config->use_vsh_menu = 1; // <[vshcntrl]
- 	config->language = -1;
+-	config->language = -1;
++	config->language = -1;
+++	config->parental_mode = 0; // <[parental]
+++	config->use_vsh_menu = 1; // <[vshcntrl]
+ 	config->retail_high_memory = 0;
  }
  
-diff -r c2f2580404a4 Translated/recovery_de.txt
---- a/Translated/recovery_de.txt	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Translated/recovery_de.txt	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 Translated/recovery_de.txt
+--- a/Translated/recovery_de.txt	Mon Feb 13 00:44:26 2012 +0100
++++ b/Translated/recovery_de.txt	Wed Feb 22 00:43:55 2012 +0400
 @@ -1,4 +1,4 @@
 -PRO Recovery Men
 +PROMOD Recovery Men
  Hauptmen
  Entering
  Exiting
-@@ -96,3 +96,5 @@
+@@ -96,4 +96,6 @@
  China
  Debug Typ I
  Debug Typ II
 +Enable parental control for ISO (en)
 +Enable VSH menu in PSP menu (en)
-diff -r c2f2580404a4 Translated/recovery_en.txt
---- a/Translated/recovery_en.txt	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Translated/recovery_en.txt	Wed Feb 22 00:35:36 2012 +0400
+ Retail RAM-Begrenzung aufheben (bugged Homescreen)
+diff -r 775b9c814ce8 Translated/recovery_en.txt
+--- a/Translated/recovery_en.txt	Mon Feb 13 00:44:26 2012 +0100
++++ b/Translated/recovery_en.txt	Wed Feb 22 00:43:55 2012 +0400
 @@ -1,4 +1,4 @@
 -PRO Recovery Menu
 +PROMOD Recovery Menu
  Main Menu
  Entering
  Exiting
-@@ -96,3 +96,5 @@
+@@ -96,3 +96,6 @@
  China
  Debug Type I
  Debug Type II
 +Enable parental control for ISO (en)
 +Enable VSH menu in PSP menu (en)
-diff -r c2f2580404a4 Translated/recovery_es.txt
---- a/Translated/recovery_es.txt	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Translated/recovery_es.txt	Wed Feb 22 00:35:36 2012 +0400
++Unlock Memory in PSP Games (breaks Homescreen) (en)
+\ No newline at end of file
+diff -r 775b9c814ce8 Translated/recovery_es.txt
+--- a/Translated/recovery_es.txt	Mon Feb 13 00:44:26 2012 +0100
++++ b/Translated/recovery_es.txt	Wed Feb 22 00:43:55 2012 +0400
 @@ -1,4 +1,4 @@
 -Recovery Menú PRO
 +Recovery Menú PROMOD
  Menu Principal
  Entrando
  Saliendo
-@@ -96,3 +96,5 @@
+@@ -96,3 +96,6 @@
  China
  Modalidad de Debug I
  Modalidad de Debug II
 +Enable parental control for ISO (en)
 +Enable VSH menu in PSP menu (en)
-diff -r c2f2580404a4 Translated/recovery_fr.txt
---- a/Translated/recovery_fr.txt	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Translated/recovery_fr.txt	Wed Feb 22 00:35:36 2012 +0400
++Unlock Memory in PSP Games (breaks Homescreen) (en)
+\ No newline at end of file
+diff -r 775b9c814ce8 Translated/recovery_fr.txt
+--- a/Translated/recovery_fr.txt	Mon Feb 13 00:44:26 2012 +0100
++++ b/Translated/recovery_fr.txt	Wed Feb 22 00:43:55 2012 +0400
 @@ -1,4 +1,4 @@
 -Menu Recovery PRO
 +Menu Recovery PROMOD
  Menu Principal
  Saisie
  Quitte
-@@ -96,3 +96,5 @@
+@@ -96,3 +96,6 @@
  La Chine
  Le mode Debug I
  Le mode Debug II
 +Enable parental control for ISO (en)
 +Enable VSH menu in PSP menu (en)
-diff -r c2f2580404a4 Translated/recovery_it.txt
---- a/Translated/recovery_it.txt	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Translated/recovery_it.txt	Wed Feb 22 00:35:36 2012 +0400
++Unlock Memory in PSP Games (breaks Homescreen) (en)
+\ No newline at end of file
+diff -r 775b9c814ce8 Translated/recovery_it.txt
+--- a/Translated/recovery_it.txt	Mon Feb 13 00:44:26 2012 +0100
++++ b/Translated/recovery_it.txt	Wed Feb 22 00:43:55 2012 +0400
 @@ -1,4 +1,4 @@
 -Recovery Menu PRO
 +Recovery Menu PROMOD
  Menu Principale
  Entrando
  Uscendo
-@@ -96,3 +96,5 @@
+@@ -96,3 +96,6 @@
  Cina
  Modalità di Debug I
  Modalità di Debug II
 +Enable parental control for ISO (en)
 +Enable VSH menu in PSP menu (en)
-diff -r c2f2580404a4 Translated/satelite_de.txt
---- a/Translated/satelite_de.txt	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Translated/satelite_de.txt	Wed Feb 22 00:35:36 2012 +0400
++Unlock Memory in PSP Games (breaks Homescreen) (en)
+\ No newline at end of file
+diff -r 775b9c814ce8 Translated/satelite_de.txt
+--- a/Translated/satelite_de.txt	Mon Feb 13 00:44:26 2012 +0100
++++ b/Translated/satelite_de.txt	Wed Feb 22 00:43:55 2012 +0400
 @@ -16,7 +16,7 @@
  GERŽT NEU STARTEN
  VSH NEU STARTEN
@@ -490,9 +503,9 @@ diff -r c2f2580404a4 Translated/satelite_de.txt
  Flash
  UMD Disc
  Memory Stick
-diff -r c2f2580404a4 Translated/satelite_en.txt
---- a/Translated/satelite_en.txt	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Translated/satelite_en.txt	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 Translated/satelite_en.txt
+--- a/Translated/satelite_en.txt	Mon Feb 13 00:44:26 2012 +0100
++++ b/Translated/satelite_en.txt	Wed Feb 22 00:43:55 2012 +0400
 @@ -16,7 +16,7 @@
  RESET DEVICE
  RESET VSH
@@ -502,9 +515,9 @@ diff -r c2f2580404a4 Translated/satelite_en.txt
  Flash
  UMD Disc
  Memory Stick
-diff -r c2f2580404a4 Translated/satelite_es.txt
---- a/Translated/satelite_es.txt	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Translated/satelite_es.txt	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 Translated/satelite_es.txt
+--- a/Translated/satelite_es.txt	Mon Feb 13 00:44:26 2012 +0100
++++ b/Translated/satelite_es.txt	Wed Feb 22 00:43:55 2012 +0400
 @@ -16,7 +16,7 @@
  REINICIA LA CONSOLA
  REINICIA LA VSH
@@ -514,9 +527,9 @@ diff -r c2f2580404a4 Translated/satelite_es.txt
  Flash
  Disco UMD
  Memoria Stick
-diff -r c2f2580404a4 Translated/satelite_fr.txt
---- a/Translated/satelite_fr.txt	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Translated/satelite_fr.txt	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 Translated/satelite_fr.txt
+--- a/Translated/satelite_fr.txt	Mon Feb 13 00:44:26 2012 +0100
++++ b/Translated/satelite_fr.txt	Wed Feb 22 00:43:55 2012 +0400
 @@ -16,7 +16,7 @@
  REDÉMARRER LA CONSOLE
  REDÉMARRER LA VSH
@@ -526,9 +539,9 @@ diff -r c2f2580404a4 Translated/satelite_fr.txt
  Flash
  Disque UMD
  Memory Stick
-diff -r c2f2580404a4 Translated/satelite_it.txt
---- a/Translated/satelite_it.txt	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Translated/satelite_it.txt	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 Translated/satelite_it.txt
+--- a/Translated/satelite_it.txt	Mon Feb 13 00:44:26 2012 +0100
++++ b/Translated/satelite_it.txt	Wed Feb 22 00:43:55 2012 +0400
 @@ -16,7 +16,7 @@
  RIAVVIA LA CONSOLE
  RIAVVIA LA VSH
@@ -538,9 +551,9 @@ diff -r c2f2580404a4 Translated/satelite_it.txt
  Flash
  Disco UMD
  Memoria Stick
-diff -r c2f2580404a4 Vshctrl/virtual_pbp.c
---- a/Vshctrl/virtual_pbp.c	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Vshctrl/virtual_pbp.c	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 Vshctrl/virtual_pbp.c
+--- a/Vshctrl/virtual_pbp.c	Mon Feb 13 00:44:26 2012 +0100
++++ b/Vshctrl/virtual_pbp.c	Wed Feb 22 00:43:55 2012 +0400
 @@ -531,6 +531,7 @@
  	char sfotitle[64];
  	char disc_id[12];
@@ -560,9 +573,9 @@ diff -r c2f2580404a4 Vshctrl/virtual_pbp.c
  
  	oe_free(buf);
  	memcpy(virtualsfo+0x118, sfotitle, 64);
-diff -r c2f2580404a4 Vshctrl/vshctrl_patch_offset.c
---- a/Vshctrl/vshctrl_patch_offset.c	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Vshctrl/vshctrl_patch_offset.c	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 Vshctrl/vshctrl_patch_offset.c
+--- a/Vshctrl/vshctrl_patch_offset.c	Mon Feb 13 00:44:26 2012 +0100
++++ b/Vshctrl/vshctrl_patch_offset.c	Wed Feb 22 00:43:55 2012 +0400
 @@ -33,7 +33,7 @@
  	},
  	.sysconf_plugin_patch = {
@@ -599,9 +612,9 @@ diff -r c2f2580404a4 Vshctrl/vshctrl_patch_offset.c
  		.SystemVersion = 0x00018920,
  		.MacAddressStr = 0x0002DB90,
  		.SlimColor = 0x00007494,
-diff -r c2f2580404a4 Vshctrl/vshmenu.c
---- a/Vshctrl/vshmenu.c	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Vshctrl/vshmenu.c	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 Vshctrl/vshmenu.c
+--- a/Vshctrl/vshmenu.c	Mon Feb 13 00:44:26 2012 +0100
++++ b/Vshctrl/vshmenu.c	Wed Feb 22 00:43:55 2012 +0400
 @@ -172,6 +172,12 @@
  		if (sceKernelFindModuleByName("camera_plugin_module"))
  			goto exit;
@@ -615,9 +628,9 @@ diff -r c2f2580404a4 Vshctrl/vshmenu.c
  		printk("%s: loading satelite\n", __func__);
  		modid = load_satelite();
  
-diff -r c2f2580404a4 Vshctrl/vshpatch.c
---- a/Vshctrl/vshpatch.c	Sat Oct 29 21:39:54 2011 +0800
-+++ b/Vshctrl/vshpatch.c	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 Vshctrl/vshpatch.c
+--- a/Vshctrl/vshpatch.c	Mon Feb 13 00:44:26 2012 +0100
++++ b/Vshctrl/vshpatch.c	Wed Feb 22 00:43:55 2012 +0400
 @@ -179,6 +179,7 @@
  	"/SEPLUGINS",
  	"/ISO",
@@ -635,9 +648,9 @@ diff -r c2f2580404a4 Vshctrl/vshpatch.c
  #endif
  	
  	p = (void*)(text_addr + g_offs->sysconf_plugin_patch.SystemVersionStr);
-diff -r c2f2580404a4 include/systemctrl_se.h
---- a/include/systemctrl_se.h	Sat Oct 29 21:39:54 2011 +0800
-+++ b/include/systemctrl_se.h	Wed Feb 22 00:35:36 2012 +0400
+diff -r 775b9c814ce8 include/systemctrl_se.h
+--- a/include/systemctrl_se.h	Mon Feb 13 00:44:26 2012 +0100
++++ b/include/systemctrl_se.h	Wed Feb 22 00:43:55 2012 +0400
 @@ -88,6 +88,8 @@
  	s16 iso_cache_num;
  	s16 iso_cache_policy;
@@ -645,5 +658,5 @@ diff -r c2f2580404a4 include/systemctrl_se.h
 +	s16 parental_mode; // <[parental]
 +	s16 use_vsh_menu; // <[vshcntrl]
  	s16 language; /* -1 as autodetect */
+ 	s16 retail_high_memory;
  } SEConfig;
- 
