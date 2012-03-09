@@ -1,0 +1,852 @@
+diff -r c2f2580404a4 CIPL_installer/Makefile
+--- a/CIPL_installer/Makefile	Sat Oct 29 21:39:54 2011 +0800
++++ b/CIPL_installer/Makefile	Sat Mar 10 00:36:56 2012 +0400
+@@ -26,7 +26,7 @@
+ ASFLAGS = $(CFLAGS)
+ 
+ EXTRA_TARGETS = EBOOT.PBP
+-PSP_EBOOT_TITLE = CIPL Flasher For PRO-B
++PSP_EBOOT_TITLE = CIPL Flasher For PRO-B (PROMOD)
+ PSP_EBOOT_ICON = ICON0.PNG
+ 
+ PSPSDK=$(shell psp-config --pspsdk-path)
+diff -r c2f2580404a4 CIPL_installer/main.c
+--- a/CIPL_installer/main.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/CIPL_installer/main.c	Sat Mar 10 00:36:56 2012 +0400
+@@ -154,7 +154,7 @@
+ 		ErrorExit(5000,"Failed to get ipl!\n");
+ 	}
+ 
+-	printf("\nCustom ipl Flasher for "VERSION_STR".\n\n\n");
++	printf("\nCustom ipl Flasher for "VERSION_STR" (PROMOD).\n\n\n");
+ 
+ 	int ipl_type = 0;
+ 
+diff -r c2f2580404a4 FastRecovery/Makefile
+--- a/FastRecovery/Makefile	Sat Oct 29 21:39:54 2011 +0800
++++ b/FastRecovery/Makefile	Sat Mar 10 00:36:56 2012 +0400
+@@ -1,6 +1,7 @@
+ TARGET = fast_recovery
+ OBJS = main.o imports.o syscall.o ../PXE/Launcher/launcher_patch_offset.o ../Common/utils.o
+-LIBS =
++LIBS = ../libs/libpspsystemctrl_user.a
++# ^[vshcntrl]
+ CFLAGS = -Os -G0 -Wall -I ../Common -I ../include
+ CXXFLAGS = $(CFLAGS)
+ ASFLAGS = $(CFLAGS)
+@@ -40,7 +41,7 @@
+ endif
+ 
+ BUILD_PRX = 1
+-PSP_EBOOT_TITLE += PRO-B Fast Recovery
++PSP_EBOOT_TITLE += PRO-B Fast Recovery (PROMOD)
+ 
+ EXTRA_TARGETS = EBOOT.PBP
+ PSP_EBOOT_ICON = ICON0.PNG
+diff -r c2f2580404a4 FastRecovery/main.c
+--- a/FastRecovery/main.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/FastRecovery/main.c	Sat Mar 10 00:36:56 2012 +0400
+@@ -27,6 +27,7 @@
+ #include <pspsysmem.h>
+ #include <psppower.h>
+ #include <string.h>
++#include <systemctrl_se.h> // <[vshcntrl]
+ #include "utils.h"
+ #include "printk.h"
+ #include "rebootex_conf.h"
+@@ -84,7 +85,9 @@
+ int psp_model = 0;
+ u32 psp_fw_version = 0;
+ 
+-int dump_kmem = 0;
++//int dump_kmem = 0;
++int enable_disable_vsh = 0; // <[vshcntrl]
++int reset_settings_all = 0; // <[settings]
+ 
+ //load reboot function
+ int (* LoadReboot)(void * arg1, unsigned int arg2, void * arg3, unsigned int arg4) = NULL;
+@@ -338,10 +341,10 @@
+ 	//save LoadReboot function
+ 	LoadReboot = (void*)loadexec->text_addr + patch->LoadReboot;
+ 	
+-	if (dump_kmem) {
++	/*if (dump_kmem) {
+ 		memcpy((void*)0x08A00000, (void*)0x88000000, 0x400000);
+ 		memcpy((void*)(0x08A00000+0x400000), (void*)0xBFC00200, 0x100);
+-	}
++	}*/
+ 
+ 	//sync cache
+ 	_sceKernelIcacheInvalidateAll();
+@@ -351,7 +354,7 @@
+ 	return 0xC01DB15D;
+ }
+ 
+-void input_dump_kmem(void)
++/*void input_dump_kmem(void)
+ {
+ 	SceCtrlData ctl;
+ 	sceCtrlReadBufferPositive(&ctl, 1);
+@@ -360,7 +363,29 @@
+ 		dump_kmem = 1;
+ 		pspDebugScreenPrintf("Kernel memory will be dumped into ms0:/KMEM.BIN and ms0:/SEED.BIN\r\n");
+ 	}
+-}
++}*/
++
++void input_changevsh(void)
++{
++	SceCtrlData ctl;
++	sceCtrlReadBufferPositive(&ctl, 1);
++
++	if (ctl.Buttons & PSP_CTRL_RTRIGGER) {
++		enable_disable_vsh = 1;
++		pspDebugScreenPrintf("VSH menu will be enabled or disabled...\r\n");
++	}
++} // <[vshcntrl]
++
++void input_resetsets(void)
++{
++	SceCtrlData ctl;
++	sceCtrlReadBufferPositive(&ctl, 1);
++
++	if (ctl.Buttons & PSP_CTRL_LTRIGGER) {
++		reset_settings_all = 1;
++		pspDebugScreenPrintf("Settings will be reset now...\r\n");
++	}
++} // <[settings]
+ 
+ #if defined(CONFIG_620) || defined(CONFIG_635)
+ //safe syscall wrapper for kernel_permission_call - this lets us return safely!
+@@ -531,7 +556,9 @@
+ 	printk("Hello exploit\r\n");
+ 	pspDebugScreenInit();
+ 
+-	input_dump_kmem();
++	//input_dump_kmem();
++	input_resetsets(); // <[settings]
++	input_changevsh(); // <[vshcntrl]
+ 
+ #ifdef CONFIG_639
+ 	if(psp_fw_version == FW_639) {
+@@ -551,7 +578,7 @@
+ 	}
+ #endif
+ 
+-	if ( dump_kmem ) {
++	/*if ( dump_kmem ) {
+ 		SceUID fd;
+ 
+ 		fd = sceIoOpen("ms0:/kmem.bin", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+@@ -567,6 +594,17 @@
+ 			sceIoWrite(fd, (void*)(0x08A00000+0x400000), 0x100);
+ 			sceIoClose(fd);
+ 		}
++	}*/
++
++	if (enable_disable_vsh) {
++		SEConfig config;
++		sctrlSEGetConfig(&config);
++		config.use_vsh_menu = !(config.use_vsh_menu);
++		sctrlSESetConfig(&config);
++	}
++
++	if (reset_settings_all) {
++		sceIoRemove("flash1:/config.xx");
+ 	}
+ 
+ 	//trigger reboot
+diff -r c2f2580404a4 Installer/main.c
+--- a/Installer/main.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/Installer/main.c	Sat Mar 10 00:36:56 2012 +0400
+@@ -194,7 +194,7 @@
+ 
+ void usage(void)
+ {
+-	printf(VERSION_STR " by Team PRO\n");
++	printf(VERSION_STR " by Team PRO & Yoti (PROMOD)\n"); // <[yoti_mod]
+ }
+ 
+ struct InstallList {
+@@ -231,7 +231,7 @@
+ 	int ret, i;
+ 
+ 	if(disable_smart) {
+-		sceIoRemove("flash1:/config.se");
++		sceIoRemove("flash1:/config.xx"); // <[yoti_mod]
+ 	}
+ 
+ 	for(i=0; i<NELEMS(g_old_cfw_files); ++i) {
+@@ -482,7 +482,7 @@
+ {
+ 	int ret;
+ 
+-	sceIoRemove("flash1:/config.se");
++	sceIoRemove("flash1:/config.xx"); // <[yoti_mod]
+ 
+ 	int i; for(i=0; i<NELEMS(g_file_lists); ++i) {
+ 		printf("Removing %s...", g_file_lists[i].dst);
+diff -r c2f2580404a4 Makefile
+--- a/Makefile	Sat Oct 29 21:39:54 2011 +0800
++++ b/Makefile	Sat Mar 10 00:36:56 2012 +0400
+@@ -55,7 +55,7 @@
+ # Preparing Distribution Folders
+ 	@mkdir $(DISTRIBUTE) || true
+ 	@mkdir $(DISTRIBUTE)/seplugins/ || true
+-	@cp -r contrib/fonts $(DISTRIBUTE)/seplugins/fonts || true
++	#@cp -r contrib/fonts $(DISTRIBUTE)/seplugins/fonts || true
+ 	@cp Translated/* $(DISTRIBUTE)/seplugins || true
+ 	@mkdir $(DISTRIBUTE)/PSP || true
+ 	@mkdir $(DISTRIBUTE)/PSP/GAME || true
+diff -r c2f2580404a4 PXE/Launcher/Makefile
+--- a/PXE/Launcher/Makefile	Sat Oct 29 21:39:54 2011 +0800
++++ b/PXE/Launcher/Makefile	Sat Mar 10 00:36:56 2012 +0400
+@@ -52,11 +52,11 @@
+ endif
+ 
+ BUILD_PRX = 1
+-PSP_EBOOT_TITLE += PRO-B Updater
++PSP_EBOOT_TITLE += PRO-B Updater (PROMOD)
+ 
+ EXTRA_TARGETS = EBOOT.PBP
+ PSP_EBOOT_ICON = ICON0.PNG
+-PSP_EBOOT_PIC1 = PIC1.PNG
++#PSP_EBOOT_PIC1 = PIC1.PNG
+ 
+ PSPSDK=$(shell psp-config --pspsdk-path)
+ include $(PSPSDK)/lib/build.mak
+diff -r c2f2580404a4 Recovery/main.h
+--- a/Recovery/main.h	Sat Oct 29 21:39:54 2011 +0800
++++ b/Recovery/main.h	Sat Mar 10 00:36:56 2012 +0400
+@@ -120,6 +120,12 @@
+ 	CHINA,
+ 	DEBUG_TYPE_I,
+ 	DEBUG_TYPE_II,
++	PARENTAL_MODE, // <[parental]
++	USE_VSH_MENU, // <[vshcntrl]
++	CONFIG_OFW_BACKUP_MENU, // <[newhacks]
++	CONFIG_OFW_RESTORE_MENU, // <[newhacks]
++	CONFIG_CFW_BACKUP_MENU, // <[newhacks]
++	CONFIG_CFW_RESTORE_MENU, // <[newhacks]
+ 	MSG_END,
+ };
+ 
+@@ -185,6 +191,8 @@
+ 
+ #define RECOVERY_EBOOT_PATH "ms0:/PSP/GAME/RECOVERY/EBOOT.PBP"
+ #define RECOVERY_EBOOT_PATH_EF0 "ef0:/PSP/GAME/RECOVERY/EBOOT.PBP"
++#define RECOVERY_BACKUP_PATH_ONLY "ms0:/PSP/BACKUP/"
++#define RECOVERY_BACKUP_PATH_ONLY_EF0 "ms0:/PSP/BACKUP/"
+ 
+ extern int g_ctrl_OK;
+ extern int g_ctrl_CANCEL;
+diff -r c2f2580404a4 Recovery/menu.c
+--- a/Recovery/menu.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/Recovery/menu.c	Sat Mar 10 00:36:56 2012 +0400
+@@ -62,6 +62,11 @@
+ 	1, MODE_INFERNO+1,
+ };
+ 
++static struct ValueOption g_use_vsh_menu = {
++	&g_config.use_vsh_menu,
++	0, 2,
++}; // <[vshcntrl]
++
+ static struct ValueOption g_xmb_usbdevice_option = {
+ 	&g_config.usbdevice,
+ 	0, PSP_USBDEVICE_UMD9660+1+1, /* plus 1 for no usbdevice */
+@@ -224,6 +229,13 @@
+ 	return 0;
+ }
+ 
++static int display_use_vsh_menu(struct MenuEntry* entry, char *buf, int size)
++{
++	sprintf(buf, "%-48s %-11s", g_messages[USE_VSH_MENU], get_bool_name(g_config.use_vsh_menu));
++
++	return 0;
++} // <[vshcntrl]
++
+ static int display_xmb_usbdevice(struct MenuEntry* entry, char *buf, int size)
+ {
+ 	sprintf(buf, "%-48s %-11s", g_messages[XMB_USBDEVICE], get_usbdevice_name(g_config.usbdevice));
+@@ -407,6 +419,7 @@
+ static struct MenuEntry g_configuration_menu_entries[] = {
+ 	{ -1, 0, 0, &display_iso_mode, &change_option, &change_option_by_enter, &g_iso_mode_option },
+ 	{ -1, 0, 0, &display_language, &change_option, &change_option_by_enter, &g_language_charge_option },
++	{ -1, 0, 0, &display_use_vsh_menu, &change_option, &change_option_by_enter, &g_use_vsh_menu }, // <[vshcntrl]
+ 	{ -1, 0, 0, &display_fake_region, &change_option, &change_option_by_enter, &g_fake_region_option },
+ 	{ -1, 0, 0, &display_recovery_font, &change_font_select_option, &change_font_select_option_by_enter, &g_recovery_font_option },
+ 	{ -1, 0, 0, &display_xmb_usbdevice, &change_option, &change_option_by_enter, &g_xmb_usbdevice_option },
+@@ -474,6 +487,13 @@
+ 	return 0;
+ }
+ 
++static int display_parental_mode(struct MenuEntry* entry, char *buf, int size)
++{
++	sprintf(buf, "%-48s %-11s", g_messages[PARENTAL_MODE], get_bool_name(g_config.parental_mode));
++
++	return 0;
++} // <[parental]
++
+ static int display_iso_cache(struct MenuEntry* entry, char *buf, int size)
+ {
+ 	sprintf(buf, "%-48s %-11s", g_messages[ISO_CACHE], get_bool_name(g_config.iso_cache));
+@@ -573,6 +593,11 @@
+ 	0, 2,
+ };
+ 
++static struct ValueOption g_parental_mode = {
++	&g_config.parental_mode,
++	0, 2,
++};
++
+ static struct ValueOption g_iso_cache = {
+ 	&g_config.iso_cache,
+ 	0, 2,
+@@ -618,6 +643,7 @@
+ 	{ -1, 0, 0, &display_use_noanalog, &change_option, &change_option_by_enter, &g_use_noanalog_option},
+ 	{ -1, 0, 0, &display_chn_iso, &change_option, &change_option_by_enter, &g_chn_iso},
+ 	{ -1, 0, 0, &display_use_oldplugin, &change_option, &change_option_by_enter, &g_use_oldplugin},
++	{ -1, 0, 0, &display_parental_mode, &change_option, &change_option_by_enter, &g_parental_mode }, // <[parental]
+ 	{ -1, 0, 0, &display_iso_cache, &change_option, &change_option_by_enter, &g_iso_cache},
+ 	{ -1, 0, 0, &display_iso_cache_total_size, &change_option, &change_option_by_enter, &g_iso_cache_total_size},
+ 	{ -1, 0, 0, &display_iso_cache_number, &change_iso_cache_number_option, &change_iso_cache_number_option_by_enter, &g_iso_cache_number},
+@@ -875,6 +901,154 @@
+ 	return 0;
+ }
+ 
++static int FindFile(char*file) // <[newhacks]
++{
++	int ret = 0;
++
++	SceUID fd = sceIoOpen(file, PSP_O_RDONLY, 0);
++		ret = fd;
++	sceIoClose(fd);
++
++	return ret;
++}
++
++static int ReadFile(char*file, void*buff, int size) // <[newhacks]
++{
++	SceUID fd = sceIoOpen(file, PSP_O_RDONLY, 0);
++	if (fd < 0)
++		return fd;
++
++	int done = sceIoRead(fd, buff, size);
++	sceIoClose(fd);
++
++	return done;
++}
++
++static int WriteFile(char*file, void*buff, int size) // <[newhacks]
++{
++	sceIoRemove(file);
++	SceUID fd = sceIoOpen(file, PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
++	if (fd < 0)
++		return fd;
++
++	int done = sceIoWrite(fd, buff, size);
++	sceIoClose(fd);
++
++	return done;
++}
++
++static int cfg_ofw_backup(struct MenuEntry *entry) // <[newhacks]
++{
++	char buf[80];
++
++	sprintf(buf, "> %s", g_messages[CONFIG_OFW_BACKUP_MENU]);
++	//
++	set_bottom_info(buf, 0);
++	frame_end();
++	sceKernelDelayThread(CHANGE_DELAY);
++	set_bottom_info("", 0);
++	
++	return 0;
++}
++
++static int cfg_ofw_restore(struct MenuEntry *entry) // <[newhacks]
++{
++	char buf[80];
++
++	sprintf(buf, "> %s", g_messages[CONFIG_OFW_RESTORE_MENU]);
++	//
++	set_bottom_info(buf, 0);
++	frame_end();
++	sceKernelDelayThread(CHANGE_DELAY);
++	set_bottom_info("", 0);
++
++	resume_vsh_thread();
++	sctrlKernelExitVSH(NULL);
++	sceKernelStopUnloadSelfModule(0, NULL, NULL, NULL);
++
++	return 0;
++}
++
++static int cfg_cfw_backup(struct MenuEntry *entry) // <[newhacks]
++{
++	char buf[80];
++	char buf_config[78];
++	u32 psp_model;
++	psp_model = kuKernelGetModel();
++
++	if (psp_model == PSP_GO)
++	{
++		if (FindFile(RECOVERY_BACKUP_PATH_ONLY_EF0 "config.xx") < 0)
++			sprintf(buf, "> %s", "Backup saved to ef0");
++		else
++			sprintf(buf, "> %s", "Backup rewrited on ef0");
++
++		ReadFile("flash1:/config.xx", buf_config, sizeof(buf_config));
++		sceIoMkdir(RECOVERY_BACKUP_PATH_ONLY_EF0, 0777);
++		WriteFile(RECOVERY_BACKUP_PATH_ONLY_EF0 "config.xx", buf_config, sizeof(buf_config));
++	}
++	else if (psp_model != PSP_GO)
++	{
++		if (FindFile(RECOVERY_BACKUP_PATH_ONLY "config.xx") < 0)
++			sprintf(buf, "> %s", "Backup saved to ms0");
++		else
++			sprintf(buf, "> %s", "Backup rewrited on ms0");
++
++		ReadFile("flash1:/config.xx", buf_config, sizeof(buf_config));
++		sceIoMkdir(RECOVERY_BACKUP_PATH_ONLY, 0777);
++		WriteFile(RECOVERY_BACKUP_PATH_ONLY "config.xx", buf_config, sizeof(buf_config));
++	}
++
++	set_bottom_info(buf, 0);
++	frame_end();
++	sceKernelDelayThread(CHANGE_DELAY);
++	set_bottom_info("", 0);
++	
++	return 0;
++}
++
++static int cfg_cfw_restore(struct MenuEntry *entry) // <[newhacks]
++{
++	char buf[80];
++	char buf_config[78];
++	u32 psp_model;
++	psp_model = kuKernelGetModel();
++
++	if (psp_model == PSP_GO)
++	{
++		if (FindFile(RECOVERY_BACKUP_PATH_ONLY_EF0 "config.xx") < 0)
++			sprintf(buf, "> %s", "There is no backup on ef0");
++		else
++		{
++			ReadFile(RECOVERY_BACKUP_PATH_ONLY_EF0 "config.xx", buf_config, sizeof(buf_config));
++			WriteFile("flash1:/config.xx", buf_config, sizeof(buf_config));
++			sprintf(buf, "> %s", "Restored from ef0");
++		}
++	}
++	else if (psp_model != PSP_GO)
++	{
++		if (FindFile(RECOVERY_BACKUP_PATH_ONLY "config.xx") < 0)
++			sprintf(buf, "> %s", "There is no backup on ms0");
++		else
++		{
++			ReadFile(RECOVERY_BACKUP_PATH_ONLY "config.xx", buf_config, sizeof(buf_config));
++			WriteFile("flash1:/config.xx", buf_config, sizeof(buf_config));
++			sprintf(buf, "> %s", "Restored from ms0");
++		}
++	}
++
++	set_bottom_info(buf, 0);
++	frame_end();
++	sceKernelDelayThread(CHANGE_DELAY);
++	set_bottom_info("", 0);
++
++	resume_vsh_thread();
++	sctrlKernelExitVSH(NULL);
++	sceKernelStopUnloadSelfModule(0, NULL, NULL, NULL);
++
++	return 0;
++}
++
+ static int swap_buttons(struct MenuEntry *entry)
+ {
+ 	u32 value;
+@@ -920,6 +1094,10 @@
+ 	{ ACTIVATE_WMA, 0, 0, NULL, NULL, &active_wma, NULL },
+ 	{ ACTIVATE_FLASH, 0, 0, NULL, NULL, &active_flash, NULL },
+ 	{ SWAP_BUTTONS_FULL, 0, 0, NULL, NULL, &swap_buttons, NULL },
++	{ CONFIG_OFW_BACKUP_MENU, 0, 0, NULL, NULL, &cfg_ofw_backup, NULL }, // <[newhacks]
++	{ CONFIG_OFW_RESTORE_MENU, 0, 0, NULL, NULL, &cfg_ofw_restore, NULL }, // <[newhacks]
++	{ CONFIG_CFW_BACKUP_MENU, 0, 0, NULL, NULL, &cfg_cfw_backup, NULL }, // <[newhacks]
++	{ CONFIG_CFW_RESTORE_MENU, 0, 0, NULL, NULL, &cfg_cfw_restore, NULL }, // <[newhacks]
+ 	{ DELETE_HIBERNATION, 0, 0, NULL, NULL, &delete_hibernation, NULL },
+ };
+ 
+diff -r c2f2580404a4 Recovery/trans_en.c
+--- a/Recovery/trans_en.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/Recovery/trans_en.c	Sat Mar 10 00:36:56 2012 +0400
+@@ -21,7 +21,7 @@
+ #include "main.h"
+ 
+ const char * g_messages_en[] = {
+-	"PRO Recovery Menu",
++	"PROMOD Recovery Menu", // <[yoti_mod]
+ 	"Main Menu",
+ 	"Entering",
+ 	"Exiting",
+@@ -119,6 +119,12 @@
+ 	"China",
+ 	"Debug Type I",
+ 	"Debug Type II",
++	"Enable parental control for ISO", // <[parental]
++	"Enable VSH menu in PSP menu", // <[vshcntrl]
++	"Backup settings", // <[newhacks]
++	"Restore settings", // <[newhacks]
++	"Backup custom setting", // <[newhacks]
++	"Restore custom settings", // <[newhacks]
+ };
+ 
+ u8 message_test_en[NELEMS(g_messages_en) == MSG_END ? 0 : -1];
+diff -r c2f2580404a4 Satelite/trans_en.c
+--- a/Satelite/trans_en.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/Satelite/trans_en.c	Sat Mar 10 00:36:56 2012 +0400
+@@ -36,7 +36,7 @@
+ 	"RESET DEVICE",
+ 	"RESET VSH",
+ 	"EXIT",
+-	"PRO VSH MENU",
++	"PROMOD VSH MENU",
+ 	"Flash",
+ 	"UMD Disc",
+ 	"Memory Stick",
+diff -r c2f2580404a4 SystemControl/conf.c
+--- a/SystemControl/conf.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/SystemControl/conf.c	Sat Mar 10 00:36:56 2012 +0400
+@@ -47,7 +47,7 @@
+    
+ 	k1 = pspSdkSetK1(0);
+ 	memset(config, 0, sizeof(*config));
+-	fd = sceIoOpen("flash1:/config.se", PSP_O_RDONLY, 0644);
++	fd = sceIoOpen("flash1:/config.xx", PSP_O_RDONLY, 0644); // <[yoti_mod]
+ 
+ 	if (fd < 0) {
+ 		pspSdkSetK1(k1);
+@@ -81,8 +81,8 @@
+ 	SceUID fd;
+ 
+ 	k1 = pspSdkSetK1(0);
+-	sceIoRemove("flash1:/config.se");
+-	fd = sceIoOpen("flash1:/config.se", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
++	sceIoRemove("flash1:/config.xx"); // <[yoti_mod]
++	fd = sceIoOpen("flash1:/config.xx", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777); // <[yoti_mod]
+ 
+ 	if (fd < 0) {
+ 		pspSdkSetK1(k1);
+@@ -112,7 +112,7 @@
+ 	int written;
+    
+ 	k1 = pspSdkSetK1(0);
+-	fd = sceIoOpen("flash1:/config.se", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
++	fd = sceIoOpen("flash1:/config.xx", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777); // <[yoti_mod]
+ 
+ 	if (fd < 0) {
+ 		pspSdkSetK1(k1);
+@@ -146,7 +146,7 @@
+ 	read = -1;
+ 	k1 = pspSdkSetK1(0);
+ 	memset(config, 0, size);
+-	fd = sceIoOpen("flash1:/config.se", PSP_O_RDONLY, 0666);
++	fd = sceIoOpen("flash1:/config.xx", PSP_O_RDONLY, 0666); // <[yoti_mod]
+ 
+ 	if (fd > 0) {
+ 		read = sceIoRead(fd, config, size);
+@@ -192,23 +192,25 @@
+ 	config->usbdevice = 0;
+ 	config->flashprot = 1;
+ 	config->fakeregion = FAKE_REGION_DISABLED;
+-	config->skiplogo = 0;
++	config->skiplogo = 1; // <[settings]
+ 	config->useversion = 0;
+ 	config->useownupdate = 1;
+ 	config->usenodrm = 1;
+-	config->hibblock = 1;
++	config->hibblock = 0; // <[settings]
+ 	config->noanalog = 0;
+-	config->oldplugin = 1;
++	config->oldplugin = psp_model == PSP_GO ? 1 : 0; // <[settings]
+ 	config->htmlviewer_custom_save_location = 1;
+ 	config->hide_cfw_dirs = 1;
+-	config->chn_iso = 1;
++	config->chn_iso = 0; // <[settings]
+ 	config->msspeed = MSSPEED_NONE;
+-	config->slimcolor = 1;
++	config->slimcolor = psp_model == PSP_1000 ? 1 : 0; // <[settings]
+ 	config->iso_cache = psp_model == PSP_GO ? 0 : 1;
+ 	config->iso_cache_total_size = 20;
+ 	config->iso_cache_num = 256;
+ 	config->iso_cache_policy = CACHE_POLICY_LRU;
+ 	config->usbversion = 0;
++	config->parental_mode = 0; // <[parental]
++	config->use_vsh_menu = 1; // <[vshcntrl]
+ 	config->language = -1;
+ }
+ 
+diff -r c2f2580404a4 Translated/recovery_de.txt
+--- a/Translated/recovery_de.txt	Sat Oct 29 21:39:54 2011 +0800
++++ b/Translated/recovery_de.txt	Sat Mar 10 00:36:56 2012 +0400
+@@ -1,4 +1,4 @@
+-PRO Recovery MenÅ
++PROMOD Recovery MenÅ
+ HauptmenÅ
+ Entering
+ Exiting
+@@ -96,3 +96,9 @@
+ China
+ Debug Typ I
+ Debug Typ II
++Enable parental control for ISO (en)
++Enable VSH menu in PSP menu (en)
++Backup settings (en)
++Restore settings (en)
++Backup custom setting (en)
++Restore custom settings (en)
+diff -r c2f2580404a4 Translated/recovery_en.txt
+--- a/Translated/recovery_en.txt	Sat Oct 29 21:39:54 2011 +0800
++++ b/Translated/recovery_en.txt	Sat Mar 10 00:36:56 2012 +0400
+@@ -1,4 +1,4 @@
+-PRO Recovery Menu
++PROMOD Recovery Menu
+ Main Menu
+ Entering
+ Exiting
+@@ -96,3 +96,9 @@
+ China
+ Debug Type I
+ Debug Type II
++Enable parental control for ISO
++Enable VSH menu in PSP menu
++Backup settings
++Restore settings
++Backup custom setting
++Restore custom settings
+diff -r c2f2580404a4 Translated/recovery_es.txt
+--- a/Translated/recovery_es.txt	Sat Oct 29 21:39:54 2011 +0800
++++ b/Translated/recovery_es.txt	Sat Mar 10 00:36:56 2012 +0400
+@@ -1,4 +1,4 @@
+-Recovery Men˙ PRO
++Recovery Men˙ PROMOD
+ Menu Principal
+ Entrando
+ Saliendo
+@@ -96,3 +96,9 @@
+ China
+ Modalidad de Debug I
+ Modalidad de Debug II
++Enable parental control for ISO (en)
++Enable VSH menu in PSP menu (en)
++Backup settings (en)
++Restore settings (en)
++Backup custom setting (en)
++Restore custom settings (en)
+diff -r c2f2580404a4 Translated/recovery_fr.txt
+--- a/Translated/recovery_fr.txt	Sat Oct 29 21:39:54 2011 +0800
++++ b/Translated/recovery_fr.txt	Sat Mar 10 00:36:56 2012 +0400
+@@ -1,4 +1,4 @@
+-Menu Recovery PRO
++Menu Recovery PROMOD
+ Menu Principal
+ Saisie
+ Quitte
+@@ -96,3 +96,9 @@
+ La Chine
+ Le mode Debug I
+ Le mode Debug II
++Enable parental control for ISO (en)
++Enable VSH menu in PSP menu (en)
++Backup settings (en)
++Restore settings (en)
++Backup custom setting (en)
++Restore custom settings (en)
+diff -r c2f2580404a4 Translated/recovery_it.txt
+--- a/Translated/recovery_it.txt	Sat Oct 29 21:39:54 2011 +0800
++++ b/Translated/recovery_it.txt	Sat Mar 10 00:36:56 2012 +0400
+@@ -1,4 +1,4 @@
+-Recovery Menu PRO
++Recovery Menu PROMOD
+ Menu Principale
+ Entrando
+ Uscendo
+@@ -96,3 +96,9 @@
+ Cina
+ Modalit‡ di Debug I
+ Modalit‡ di Debug II
++Enable parental control for ISO (en)
++Enable VSH menu in PSP menu (en)
++Backup settings (en)
++Restore settings (en)
++Backup custom setting (en)
++Restore custom settings (en)
+diff -r c2f2580404a4 Translated/satelite_de.txt
+--- a/Translated/satelite_de.txt	Sat Oct 29 21:39:54 2011 +0800
++++ b/Translated/satelite_de.txt	Sat Mar 10 00:36:56 2012 +0400
+@@ -16,7 +16,7 @@
+ GERéT NEU STARTEN
+ VSH NEU STARTEN
+ ZURöCK
+-PRO VSH MENö
++PROMOD VSH MENö
+ Flash
+ UMD Disc
+ Memory Stick
+diff -r c2f2580404a4 Translated/satelite_en.txt
+--- a/Translated/satelite_en.txt	Sat Oct 29 21:39:54 2011 +0800
++++ b/Translated/satelite_en.txt	Sat Mar 10 00:36:56 2012 +0400
+@@ -16,7 +16,7 @@
+ RESET DEVICE
+ RESET VSH
+ EXIT
+-PRO VSH MENU
++PROMOD VSH MENU
+ Flash
+ UMD Disc
+ Memory Stick
+diff -r c2f2580404a4 Translated/satelite_es.txt
+--- a/Translated/satelite_es.txt	Sat Oct 29 21:39:54 2011 +0800
++++ b/Translated/satelite_es.txt	Sat Mar 10 00:36:56 2012 +0400
+@@ -16,7 +16,7 @@
+ REINICIA LA CONSOLA
+ REINICIA LA VSH
+ SALIR
+-PRO VSH MENU
++PROMOD VSH MENU
+ Flash
+ Disco UMD
+ Memoria Stick
+diff -r c2f2580404a4 Translated/satelite_fr.txt
+--- a/Translated/satelite_fr.txt	Sat Oct 29 21:39:54 2011 +0800
++++ b/Translated/satelite_fr.txt	Sat Mar 10 00:36:56 2012 +0400
+@@ -16,7 +16,7 @@
+ RED…MARRER LA CONSOLE
+ RED…MARRER LA VSH
+ SORTIE
+-PRO VSH MENU
++PROMOD VSH MENU
+ Flash
+ Disque UMD
+ Memory Stick
+diff -r c2f2580404a4 Translated/satelite_it.txt
+--- a/Translated/satelite_it.txt	Sat Oct 29 21:39:54 2011 +0800
++++ b/Translated/satelite_it.txt	Sat Mar 10 00:36:56 2012 +0400
+@@ -16,7 +16,7 @@
+ RIAVVIA LA CONSOLE
+ RIAVVIA LA VSH
+ ESCI
+-PRO VSH MENU
++PROMOD VSH MENU
+ Flash
+ Disco UMD
+ Memoria Stick
+diff -r c2f2580404a4 Vshctrl/virtual_pbp.c
+--- a/Vshctrl/virtual_pbp.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/Vshctrl/virtual_pbp.c	Sat Mar 10 00:36:56 2012 +0400
+@@ -531,6 +531,7 @@
+ 	char sfotitle[64];
+ 	char disc_id[12];
+ 	u32 parental_level = 1;
++	SEConfig config; // <[parental]
+ 
+ 	buf = oe_malloc(SECTOR_SIZE+64);
+ 
+@@ -566,7 +567,9 @@
+ 		return ret;
+ 	}
+ 
+-	get_sfo_u32(buf_64, "PARENTAL_LEVEL", &parental_level);
++	sctrlSEGetConfig(&config); // <[parental]
++	if (config.parental_mode == 1) // <[parental]
++		get_sfo_u32(buf_64, "PARENTAL_LEVEL", &parental_level); // <[parental]
+ 
+ 	oe_free(buf);
+ 	memcpy(virtualsfo+0x118, sfotitle, 64);
+diff -r c2f2580404a4 Vshctrl/vshctrl_patch_offset.c
+--- a/Vshctrl/vshctrl_patch_offset.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/Vshctrl/vshctrl_patch_offset.c	Sat Mar 10 00:36:56 2012 +0400
+@@ -33,7 +33,7 @@
+ 	},
+ 	.sysconf_plugin_patch = {
+ 		.SystemVersionStr = 0x0002A62C,
+-		.SystemVersionMessage = "6.60 PRO-%c",
++		.SystemVersionMessage = "6.60 PROMOD-%c", // <[yoti_mod]
+ 		.SystemVersion = 0x000192E0,
+ 		.MacAddressStr = 0x0002E9A0,
+ 		.SlimColor = 0x000076EC,
+@@ -116,7 +116,7 @@
+ 	},
+ 	.sysconf_plugin_patch = {
+ 		.SystemVersionStr = 0x0002A1FC,
+-		.SystemVersionMessage = "6.39 PRO-%c",
++		.SystemVersionMessage = "6.39 PROMOD-%c", // <[yoti_mod]
+ 		.SystemVersion = 0x00018F3C,
+ 		.MacAddressStr = 0x0002E4D8,
+ 		.SlimColor = 0x00007660,
+@@ -199,7 +199,7 @@
+ 	},
+ 	.sysconf_plugin_patch = {
+ 		.SystemVersionStr = 0x0002A1FC,
+-		.SystemVersionMessage = "6.35 PRO-%c",
++		.SystemVersionMessage = "6.35 PROMOD-%c", // <[yoti_mod]
+ 		.SystemVersion = 0x00018F3C,
+ 		.MacAddressStr = 0x0002E4D8,
+ 		.SlimColor = 0x00007660,
+@@ -282,7 +282,7 @@
+ 	},
+ 	.sysconf_plugin_patch = {
+ 		.SystemVersionStr = 0x000298AC,
+-		.SystemVersionMessage = "6.20 PRO-%c",
++		.SystemVersionMessage = "6.20 PROMOD-%c", // <[yoti_mod]
+ 		.SystemVersion = 0x00018920,
+ 		.MacAddressStr = 0x0002DB90,
+ 		.SlimColor = 0x00007494,
+diff -r c2f2580404a4 Vshctrl/vshmenu.c
+--- a/Vshctrl/vshmenu.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/Vshctrl/vshmenu.c	Sat Mar 10 00:36:56 2012 +0400
+@@ -172,6 +172,12 @@
+ 		if (sceKernelFindModuleByName("camera_plugin_module"))
+ 			goto exit;
+ 
++		// Block Satellite by config // <[vshcntrl]
++		SEConfig config; // <[vshcntrl]
++		sctrlSEGetConfig(&config); // <[vshcntrl]
++		if (config.use_vsh_menu == 0) // <[vshcntrl]
++			goto exit; // <[vshcntrl]
++
+ 		printk("%s: loading satelite\n", __func__);
+ 		modid = load_satelite();
+ 
+diff -r c2f2580404a4 Vshctrl/vshpatch.c
+--- a/Vshctrl/vshpatch.c	Sat Oct 29 21:39:54 2011 +0800
++++ b/Vshctrl/vshpatch.c	Sat Mar 10 00:36:56 2012 +0400
+@@ -179,6 +179,7 @@
+ 	"/SEPLUGINS",
+ 	"/ISO",
+ 	"/ISO/VIDEO",
++	"/IRSHELL", // <[ir_shell]
+ };
+ 
+ int myIoMkdir(const char *dir, SceMode mode)
+@@ -285,7 +286,7 @@
+ 	}
+ 
+ #ifdef NIGHTLY
+-	strcpy(str, "PRO NIGHTLY");
++	strcpy(str, "PROMOD NIGHTLY"); // <[yoti_mod]
+ #endif
+ 	
+ 	p = (void*)(text_addr + g_offs->sysconf_plugin_patch.SystemVersionStr);
+diff -r c2f2580404a4 include/systemctrl_se.h
+--- a/include/systemctrl_se.h	Sat Oct 29 21:39:54 2011 +0800
++++ b/include/systemctrl_se.h	Sat Mar 10 00:36:56 2012 +0400
+@@ -88,6 +88,8 @@
+ 	s16 iso_cache_num;
+ 	s16 iso_cache_policy;
+ 	s16 usbversion;
++	s16 parental_mode; // <[parental]
++	s16 use_vsh_menu; // <[vshcntrl]
+ 	s16 language; /* -1 as autodetect */
+ } SEConfig;
+ 
