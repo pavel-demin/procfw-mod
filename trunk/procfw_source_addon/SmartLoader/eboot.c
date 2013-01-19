@@ -92,7 +92,7 @@ int main(int argc, char*argv[])
 
 	pspDebugScreenInit();
 	pspDebugScreenClear(); // особо не нужно
-	printf("Welcome to SmartLoader!\n\n");
+	printf("Welcome to Smart Loader!\n\n");
 
 	SceUID mod = pspSdkLoadStartModule_Smart("ksloader.prx");
 	if (mod < 0)
