@@ -1,0 +1,81 @@
+diff -r 4c4517dbc366 CIPL/combine/combine_src/Makefile
+--- a/CIPL/combine/combine_src/Makefile	Mon Jun 04 00:17:50 2012 +0900
++++ b/CIPL/combine/combine_src/Makefile	Sat Feb 23 22:57:00 2013 +0400
+@@ -2,13 +2,13 @@
+ OBJS=main.o
+ CFLAGS=-Wall -I.
+ LDFLAGS=-L.
+-LIBS = -lz
++LIBS= -lz
+ 
+-all: $(OUTPUT)
++all:
++	$(OUTPUT)
+ 
+ clean:
+ 	rm -f $(OUTPUT) *.o
+ 
+-
+ $(OUTPUT): $(OBJS)
+ 	$(LINK.c) $(LDFLAGS) -o $@ $^ $(LIBS)
+diff -r 4c4517dbc366 CIPL/combine/combine_src/main.c
+--- a/CIPL/combine/combine_src/main.c	Mon Jun 04 00:17:50 2012 +0900
++++ b/CIPL/combine/combine_src/main.c	Sat Feb 23 22:57:00 2013 +0400
+@@ -43,7 +43,7 @@
+ 
+ void usage(char *prog)
+ {
+-	printf("Usage: %s [-l size ] basefile input output\n", prog);
++	printf("Usage: %s [-l size] basefile input output\n", prog);
+ }
+ 
+ // 0x1000
+@@ -69,13 +69,13 @@
+ 		argc--;
+ 
+ 		input_size = strtol(argv[1], NULL, 16);		
+-		printf("Input size: 0x%08X\n", input_size );
++		printf("Input size: 0x%08X\n", input_size);
+ 
+ 		argv++;
+ 		argc--;
+ 	}
+ 
+-	if( input_size < 0x4000 )
++	if (input_size < 0x4000)
+ 		input_size = 0x4000;
+ 
+ 	f = fopen(argv[1], "rb");
+@@ -87,16 +87,16 @@
+ 
+ 	fseek(f, 0, SEEK_SET);
+ 
+-	output = malloc( input_size ); 
++	output = malloc(input_size); 
+ 	if (!output)
+ 	{
+ 		printf("Cannot allocate memory for output buffer.\n");
+ 		return -1;
+ 	}
+ 
+-	memset( output , 0 , input_size );
++	memset(output, 0, input_size);
+ 
+-	fread( output , 1, 0x1000 , f);
++	fread(output, 1, 0x1000, f);
+ 	fclose(f);
+ 
+ 	f = fopen(argv[2], "rb");
+@@ -107,10 +107,10 @@
+ 		return -1;
+ 	}
+ 	fseek(f, 0, SEEK_SET);
+-	fread( output + 0x1000 , 1, 0x3000 , f);
++	fread(output + 0x1000, 1, 0x3000, f);
+ 	fclose(f);
+ 	
+-	if (WriteFile( argv[3] , output, input_size ) != input_size )
++	if (WriteFile(argv[3], output, input_size) != input_size)
+ 	{
+ 		printf("Error writing file %s.\n", outfile);	
+ 		res = -1;
