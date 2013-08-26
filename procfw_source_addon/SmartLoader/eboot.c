@@ -126,21 +126,21 @@ int main(int argc, char*argv[])
 		{
 			ExitError("Error: WriteFile() returned 0x%08x\n", 5, ret);
 		}
-		sceKernelDelayThread(0.05*1000*1000);
+		sceKernelDelayThread(0.10*1000*1000);
 		ret = 0;
 		ret = WriteFile(dir2, cipl2prx, size_cipl2prx);
 		if (ret != size_cipl2prx)
 		{
 			ExitError("Error: WriteFile() returned 0x%08x\n", 5, ret);
 		}
-		sceKernelDelayThread(0.05*1000*1000);
+		sceKernelDelayThread(0.10*1000*1000);
 		ret = 0;
 		ret = WriteFile(dir3, cipl3prx, size_cipl3prx);
 		if (ret != size_cipl3prx)
 		{
 			ExitError("Error: WriteFile() returned 0x%08x\n", 5, ret);
 		}
-		sceKernelDelayThread(0.05*1000*1000);
+		sceKernelDelayThread(0.10*1000*1000);
 		// устанавливаем параметры
 		apitype = 0x141;
 		program = dir1;
@@ -165,7 +165,7 @@ int main(int argc, char*argv[])
 		file_pbp[1] = argv[0][1]; // s или f
 		// записываем fast recovery из буфера
 		sceIoMkdir(fast_dir, 0777);
-		sceKernelDelayThread(0.05*1000*1000);
+		sceKernelDelayThread(0.10*1000*1000);
 		ret = 0;
 		ret = WriteFile(file_pbp, fast_pbp, size_fast_pbp);
 		if (ret != size_fast_pbp)
