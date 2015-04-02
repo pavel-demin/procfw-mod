@@ -17,6 +17,14 @@ echo Done!
 sleep 10
 rm -rf *.diff
 rm -rf *.patch
+rm -rf CIPL_installer/ICON0.PNG
+cp ../ICON0.PNG CIPL_installer/ICON0.PNG
+rm -rf FastRecovery/ICON0.PNG
+cp ../ICON0.PNG FastRecovery/ICON0.PNG
+rm -rf Permanent/installer/ICON0.PNG
+cp ../ICON0.PNG Permanent/installer/ICON0.PNG
+rm -rf PXE/Launcher/ICON0.PNG
+cp ../ICON0.PNG PXE/Launcher/ICON0.PNG
 
 make clean
 make clean_lib
