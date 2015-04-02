@@ -1,4 +1,4 @@
-program cfw2hdr;
+program icn2src;
 
 {$APPTYPE CONSOLE}
 
@@ -18,7 +18,7 @@ var
   i: Cardinal;
 
 begin
-  WriteLn('cfw2hdr by Yoti');
+  WriteLn('icn2src by Yoti');
 
   if (ParamCount < 1)
   then
@@ -35,37 +35,40 @@ begin
     end;
 
   AssignFile(CfwFile, ParamStr(1));
-  AssignFile(HrdFile, ChangeFileExt(ParamStr(1), '.h'));
+  //AssignFile(HrdFile, ChangeFileExt(ParamStr(1), '.h'));
+  AssignFile(HrdFile, 'icon.c'); // hardcoded for icn2src
   Reset(CfwFile);
   Rewrite(HrdFile);
-  //
+
   FileS1ze:=FileSize(CfwFile);
-  //
-  WriteLn(HrdFile, 'u8 ' + ChangeFileExt(ParamStr(1), '') + '[' + IntToStr(FileS1ze) + ']=');
+
+  WriteLn(HrdFile, '#include <psptypes.h>'); // only for icn2src
+  WriteLn(HrdFile, '');
+  //WriteLn(HrdFile, 'u8 ' + ChangeFileExt(ParamStr(1), '') + '[' + IntToStr(FileS1ze) + ']=');
+  WriteLn(HrdFile, 'u8 g_icon_png[' + IntToStr(FileS1ze) + ']='); // hardcoded for icn2src
   WriteLn(HrdFile, '{');
-  //
+
   for i:=1 to FileS1ze do
     begin
       Read(CfwFile, JustByte);
-      //
-      if (i mod 16 = 1)
+
+      if (i mod 11 = 1) // hardcoded for icn2src
       then Write(HrdFile, #9);
-      //
+
       Write(HrdFile, '0x');
       Write(HrdFile, IntToHex(JustByte, 2));
       if (i <> FileS1ze)
-      then Write(HrdFile, ',');
-      //
-      if (i mod 16 = 0)
-      then WriteLn(HrdFile, '')
-      else Write(HrdFile, ' ');
-      //
+      then Write(HrdFile, ', ');
+
+      if (i mod 11 = 0) // hardcoded for icn2src
+      then WriteLn(HrdFile, '');
+
       if (i = FileS1ze)
       then Write(HrdFile, #13#10 + '};');
     end;
-  //
+
   WriteLn(HrdFile, '');
-  //
+
   CloseFile(CfwFile);
   CloseFile(HrdFile);
 
